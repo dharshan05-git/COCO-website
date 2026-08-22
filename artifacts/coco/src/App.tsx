@@ -271,7 +271,7 @@ function ReaderPage({ books, difficultWords, settings, onUpdateBook, onAddWord, 
       || voices.find((voice) => voice.lang.toLowerCase().includes("en-in"))
       || null;
     utterance.lang = preferredLanguage;
-    utterance.rate = 0.82;
+    utterance.rate = 0.62;
     utterance.pitch = 1;
     utterance.onstart = () => setIsSpeaking(true); utterance.onend = () => setIsSpeaking(false);
     window.speechSynthesis.speak(utterance);
