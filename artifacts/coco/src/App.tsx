@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   ArrowLeft, ArrowRight, BarChart3, BookOpen, Brain, Check, ChevronRight,
-  CircleHelp, Flame, Headphones, Home, Library, LockKeyhole, Menu, Moon,
+  CircleHelp, Compass, Flame, Headphones, Home, Library, LockKeyhole, Map,
+  Menu, Moon,
   Play, Plus, Settings2, Sparkles, Star, Sun, Target,
   Trophy, Upload, Volume2, Webcam, X, type LucideIcon,
 } from "lucide-react";
@@ -166,15 +167,26 @@ function Welcome({ onStart, language, setLanguage }: { onStart: (mode: Mode, nam
         <div className="dot-field absolute -right-16 -top-12 h-48 w-48 rounded-full opacity-70" />
         <div className="paper-card relative rounded-[32px] p-5 sm:p-7">
           <div className="mb-6 flex items-center justify-between"><div><p className="font-mono-coco text-[10px] uppercase tracking-[.22em] text-[hsl(var(--muted-foreground))]">COCO / 01</p><h2 className="mt-1 font-display text-3xl">Let’s make a plan.</h2></div><div className="bounce-soft grid h-14 w-14 place-items-center rounded-[20px] bg-[hsl(var(--accent))]"><Brain size={26} /></div></div>
-          {!path ? <div className="space-y-4">
+           {!path ? <div className="space-y-4">
             <p className="mb-5 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">{t("choose")}</p>
-            <button type="button" onClick={() => setPath("child")} data-testid="button-explorer-path" className="coco-button group flex w-full items-center gap-4 rounded-2xl border-2 border-[hsl(var(--primary))] bg-[hsl(var(--primary))] p-4 text-left text-[hsl(var(--primary-foreground))]"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[hsl(var(--accent))] text-[hsl(var(--foreground))]"><Star size={23} /></span><span className="flex-1"><strong className="block text-lg">{t("explorer")}</strong><span className="text-sm opacity-80">{t("explorerDesc")}</span></span><ArrowRight size={20} className="transition group-hover:translate-x-1" /></button>
+             <button type="button" onClick={() => setPath("child")} data-testid="button-explorer-path" className="coco-button group relative flex w-full items-center gap-4 overflow-hidden rounded-2xl border-2 border-[hsl(var(--primary))] bg-[hsl(var(--primary))] p-4 text-left text-[hsl(var(--primary-foreground))]"><span className="absolute -right-8 -top-12 h-28 w-28 rounded-full border-[16px] border-[hsl(var(--accent)/.35)]" /><span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[hsl(var(--accent))] text-[hsl(var(--foreground))]"><Compass size={23} /></span><span className="relative flex-1"><strong className="block text-lg">COCO Explorer</strong><span className="text-sm opacity-80">A cartoon-style reading adventure with missions and a guide.</span></span><ArrowRight size={20} className="relative transition group-hover:translate-x-1" /></button>
             <button type="button" onClick={() => setPath("adult")} data-testid="button-adult-path" className="coco-button group flex w-full items-center gap-4 rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-4 text-left"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[hsl(var(--secondary))]"><Library size={23} /></span><span className="flex-1"><strong className="block text-lg">{t("adultPath")}</strong><span className="text-sm text-[hsl(var(--muted-foreground))]">{t("adultDesc")}</span></span><ArrowRight size={20} className="text-[hsl(var(--muted-foreground))] transition group-hover:translate-x-1" /></button>
           </div> : <div className="reveal">
             <button type="button" onClick={() => setPath(null)} className="mb-6 flex items-center gap-2 text-sm font-bold text-[hsl(var(--muted-foreground))]" data-testid="button-back-path"><ArrowLeft size={16} /> {t("back")}</button>
-            <div className="mb-5 rounded-2xl bg-[hsl(var(--secondary))] p-4"><p className="font-bold">{path === "child" ? t("childName") : t("adultName")}</p><p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{t("nameHint")}</p></div>
-            <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) onStart(path, name.trim()); }} placeholder={path === "child" ? "Nila" : "Sam"} data-testid="input-name" className="mb-4 w-full rounded-2xl border-2 border-[hsl(var(--border))] bg-[hsl(var(--background))] px-4 py-4 text-lg outline-none transition placeholder:text-[hsl(var(--muted-foreground)/.6)] focus:border-[hsl(var(--primary))]" />
-            <button type="button" disabled={!name.trim()} onClick={() => onStart(path, name.trim())} data-testid="button-start-path" className="coco-button flex w-full items-center justify-center gap-2 rounded-2xl bg-[hsl(var(--accent))] px-5 py-4 font-bold disabled:cursor-not-allowed disabled:opacity-50">{path === "child" ? t("begin") : t("continue")} <ArrowRight size={18} /></button>
+             {path === "child" ? <div className="mb-5 overflow-hidden rounded-[24px] border-2 border-[hsl(var(--primary))] bg-[hsl(var(--secondary))]">
+               <div className="relative flex min-h-[145px] items-end justify-between overflow-hidden bg-[hsl(var(--primary))] px-5 pb-5 text-[hsl(var(--primary-foreground))]">
+                 <div className="relative z-10 max-w-[12rem]"><p className="font-mono-coco text-[10px] uppercase tracking-[.2em] text-[hsl(var(--accent))]">COCO / EXPLORER MAP</p><p className="mt-2 font-display text-3xl leading-none">Let’s find your brave page.</p></div>
+                 <div className="relative mr-2 h-24 w-24 shrink-0 rotate-[-7deg] rounded-[35%] border-4 border-[hsl(var(--foreground))] bg-[hsl(var(--accent))] shadow-[4px_4px_0_hsl(var(--foreground))]">
+                   <div className="absolute left-5 top-5 h-3 w-3 rounded-full bg-[hsl(var(--foreground))]" /><div className="absolute right-5 top-5 h-3 w-3 rounded-full bg-[hsl(var(--foreground))]" /><div className="absolute bottom-5 left-1/2 h-3 w-8 -translate-x-1/2 rounded-full border-b-4 border-[hsl(var(--foreground))]" />
+                 </div>
+                 <Map className="absolute -right-2 -top-6 rotate-12 text-[hsl(var(--accent)/.25)]" size={130} />
+               </div>
+               <div className="flex items-center gap-3 p-4 text-sm font-bold"><span className="grid h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--accent))]"><Star size={17} /></span><span>Mission 01: tell COCO your explorer name.</span></div>
+             </div> : <div className="mb-5 rounded-2xl bg-[hsl(var(--secondary))] p-4"><p className="font-bold">{t("adultName")}</p><p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{t("nameHint")}</p></div>}
+             {path === "child" && <p className="mb-2 text-sm font-bold">{t("childName")}</p>}
+             {path === "adult" && null}
+             <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) onStart(path, name.trim()); }} placeholder={path === "child" ? "Nila" : "Sam"} aria-label={path === "child" ? t("childName") : t("adultName")} data-testid="input-name" className="mb-4 w-full rounded-2xl border-2 border-[hsl(var(--border))] bg-[hsl(var(--background))] px-4 py-4 text-lg outline-none transition placeholder:text-[hsl(var(--muted-foreground)/.6)] focus:border-[hsl(var(--primary))]" />
+             <button type="button" disabled={!name.trim()} onClick={() => onStart(path, name.trim())} data-testid="button-start-path" className={`coco-button flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-4 font-bold disabled:cursor-not-allowed disabled:opacity-50 ${path === "child" ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]" : "bg-[hsl(var(--accent))] text-[hsl(var(--foreground))]"}`}>{path === "child" ? "Start my adventure" : t("continue")} <ArrowRight size={18} /></button>
           </div>}
           <div className="mt-6 flex items-center gap-2 border-t border-[hsl(var(--border))] pt-5 text-xs text-[hsl(var(--muted-foreground))]"><LockKeyhole size={14} /> Your books and progress stay on this device.</div>
         </div>
