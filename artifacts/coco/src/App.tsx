@@ -385,7 +385,8 @@ function AppRouter() {
 }
 
 function App() {
-  return <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}><AppRouter /></WouterRouter><Toaster /></TooltipProvider></QueryClientProvider>;
+  const base = (import.meta.env.BASE_URL || "").replace(/\/$/, "");
+  return <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={base}><AppRouter /></WouterRouter><Toaster /></TooltipProvider></QueryClientProvider>;
 }
 
 export default App;
