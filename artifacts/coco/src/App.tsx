@@ -77,17 +77,9 @@ function usePersisted<T>(key: string, initial: T) {
 function chunkWord(word: string): string[] {
   const clean = word.toLowerCase().replace(/[^a-z]/g, "");
   if (clean.length < 4) return [clean];
-  const parts = clean.match(/^(sch|thr|sh|ch|th|ph|wh|br|cr|dr|fr|gr|pl|st|tr|bl|cl|fl|gl|sl|sw|[bcdfghjklmnpqrstvwxyz]?)(.*)$/);
-  const start = parts?.[1] || clean.slice(0, 2);
-  const rest = parts?.[2] || clean.slice(start.length);
-  const chunks = [start];
-  let cursor = 0;
-  while (cursor < rest.length) {
-    const take = Math.min(2, rest.length - cursor);
-    chunks.push(rest.slice(cursor, cursor + take));
-    cursor += take;
-  }
-  return chunks.filter(Boolean);
+  const syllables = clean.match(/[^aeiouy]*[aeiouy]+(?:[^aeiouy](?=[^aeiouy]|$))?/g);
+  if (syllables && syllables.join("") === clean && syllables.length > 1) return syllables;
+  return clean.match(/.{1,2}/g) || [clean];
 }
 
 function Logo({ compact = false }: { compact?: boolean }) {
@@ -262,17 +254,40 @@ function ReaderPage({ books, difficultWords, settings, onUpdateBook, onAddWord, 
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [selectedWord, setSelectedWord] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [cameraPermission, setCameraPermission] = useState<"idle" | "granted" | "denied">("idle");
+  const [cameraBusy, setCameraBusy] = useState(false);
   const [struggles, setStruggles] = useState(0);
   const [startedAt] = useState(() => Date.now());
   const [done, setDone] = useState(book.progress >= 100);
   const currentTokenIndex = wordIndexes[currentIndex] ?? wordIndexes[0] ?? 0;
-  const speak = (word: string) => {
+  const speak = (text: string) => {
     if (!("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(word);
-    utterance.lang = language === "hi" ? "hi-IN" : language === "ta" ? "ta-IN" : "en-US";
+    const utterance = new SpeechSynthesisUtterance(text);
+    const preferredLanguage = language === "hi" ? "hi-IN" : language === "ta" ? "ta-IN" : "en-IN";
+    const voices = window.speechSynthesis.getVoices();
+    utterance.voice = voices.find((voice) => voice.lang.toLowerCase() === preferredLanguage.toLowerCase())
+      || voices.find((voice) => voice.lang.toLowerCase().startsWith(preferredLanguage.slice(0, 2)))
+      || voices.find((voice) => voice.lang.toLowerCase().includes("en-in"))
+      || null;
+    utterance.lang = preferredLanguage;
+    utterance.rate = 0.82;
+    utterance.pitch = 1;
     utterance.onstart = () => setIsSpeaking(true); utterance.onend = () => setIsSpeaking(false);
     window.speechSynthesis.speak(utterance);
+  };
+  const speakLesson = () => speak(`${book.title}. ${book.content}`);
+  const askCamera = async () => {
+    setCameraBusy(true);
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error("not supported");
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach((track) => track.stop());
+      setCameraPermission("granted");
+    } catch {
+      setCameraPermission("denied");
+    }
+    setCameraBusy(false);
   };
   const chooseWord = (token: string, tokenIndex: number) => {
     const clean = token.replace(/[^A-Za-zÀ-ÿ\u0900-\u0D7F'-]/g, "");
@@ -292,32 +307,21 @@ function ReaderPage({ books, difficultWords, settings, onUpdateBook, onAddWord, 
   return <AppShell profile={profile} language={language} setLanguage={setLanguage} onReset={onReset}><div className="mx-auto max-w-7xl px-5 py-6 sm:px-10 lg:px-14 lg:py-9">
     <div className="mb-7 flex flex-wrap items-center justify-between gap-4"><button type="button" onClick={() => setLocation(profile.mode === "child" ? "/child" : "/adult")} data-testid="button-back-reader" className="flex items-center gap-2 text-sm font-bold text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"><ArrowLeft size={17} /> {t("back")}</button><div className="flex items-center gap-3"><span className="font-mono-coco text-xs text-[hsl(var(--muted-foreground))]">{book.progress}% {t("progress")}</span><IconButton icon={settings.dyslexiaFont ? Sun : Moon} label={settings.dyslexiaFont ? "Standard type" : "Dyslexia type"} onClick={() => document.body.classList.toggle("dark")} /></div></div>
     <div className="grid items-start gap-7 xl:grid-cols-[minmax(0,1fr)_310px]"><article className={`paper-card relative rounded-[28px] p-6 sm:p-10 lg:p-14 ${settings.dyslexiaFont ? "tracking-[.025em]" : ""}`} style={{ fontSize: `${settings.textSize}px`, lineHeight: settings.lineSpacing }}>
-      <div className="mb-10 flex items-start justify-between border-b border-[hsl(var(--border))] pb-7"><div><p className="font-mono-coco text-[10px] uppercase tracking-[.2em] text-[hsl(var(--primary))]">{book.format} / {book.author}</p><h1 className="mt-3 font-display text-4xl leading-none sm:text-5xl">{book.title}</h1></div><button type="button" onClick={() => speak(book.title)} data-testid="button-speak-title" className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[hsl(var(--secondary))] text-[hsl(var(--primary))] hover:bg-[hsl(var(--accent))]"><Volume2 size={21} /></button></div>
+       <div className="mb-10 flex items-start justify-between border-b border-[hsl(var(--border))] pb-7"><div><p className="font-mono-coco text-[10px] uppercase tracking-[.2em] text-[hsl(var(--primary))]">{book.format} / {book.author}</p><h1 className="mt-3 font-display text-4xl leading-none sm:text-5xl">{book.title}</h1><p className="mt-3 text-sm text-[hsl(var(--muted-foreground))]">Listen to the whole lesson in a calm, steady voice.</p></div><button type="button" onClick={speakLesson} aria-label="Listen to whole lesson" data-testid="button-speak-lesson" className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[hsl(var(--secondary))] text-[hsl(var(--primary))] hover:bg-[hsl(var(--accent))]"><Volume2 size={21} /></button></div>
       {book.format !== "TXT" && <div role="status" className="mb-8 flex gap-3 rounded-2xl border border-[hsl(var(--accent))] bg-[hsl(var(--secondary))] p-4 text-sm leading-relaxed text-[hsl(var(--foreground))]"><CircleHelp className="mt-0.5 shrink-0 text-[hsl(var(--primary))]" size={18} />{t("extraction")}</div>}
       <p className="reader-copy max-w-3xl text-[1em]">{tokens.map((token, index) => /\S/.test(token) ? <button type="button" key={`${token}-${index}`} onClick={() => chooseWord(token, index)} data-testid={`word-${index}`} className={`rounded px-0.5 text-left transition hover:bg-[hsl(var(--accent)/.35)] focus:bg-[hsl(var(--accent)/.5)] ${index === currentTokenIndex ? "bg-[hsl(var(--accent)/.4)] underline decoration-[hsl(var(--accent))] decoration-2 underline-offset-4" : ""}`}>{token}</button> : <span key={`${token}-${index}`}>{token}</span>)}</p>
       <div className="mt-12 border-t border-[hsl(var(--border))] pt-6"><div className="mb-3 flex justify-between text-xs font-bold text-[hsl(var(--muted-foreground))]"><span>Reading trail</span><span>{Math.round(((currentIndex + 1) / Math.max(1, wordIndexes.length)) * 100)}%</span></div><ProgressBar value={((currentIndex + 1) / Math.max(1, wordIndexes.length)) * 100} accent /><div className="mt-6 flex flex-wrap gap-3"><button type="button" onClick={() => { const next = Math.min(wordIndexes.length - 1, currentIndex + 1); setCurrentIndex(next); onUpdateBook(book.id, Math.round(((next + 1) / Math.max(1, wordIndexes.length)) * 100)); }} data-testid="button-next-word" className="coco-button flex items-center gap-2 rounded-2xl bg-[hsl(var(--primary))] px-4 py-3 text-sm font-bold text-[hsl(var(--primary-foreground))]">{t("next")} <ChevronRight size={16} /></button><button type="button" onClick={() => speak(selectedWord || tokens[currentTokenIndex] || "")} data-testid="button-listen-word" className="flex items-center gap-2 rounded-2xl border border-[hsl(var(--border))] px-4 py-3 text-sm font-bold"><Headphones size={16} /> {isSpeaking ? "Playing…" : t("listen")}</button>{!done && <button type="button" onClick={finish} data-testid="button-finish-mission" className="ml-auto flex items-center gap-2 rounded-2xl bg-[hsl(var(--accent))] px-4 py-3 text-sm font-bold"><Check size={16} /> {t("finish")}</button>}</div></div>
     </article>
     <aside className="space-y-5"><div className="paper-card rounded-[24px] p-5"><div className="mb-4 flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-[hsl(var(--accent))]"><Brain size={19} /></div><div><h2 className="font-bold">{t("soundSteps")}</h2><p className="text-xs text-[hsl(var(--muted-foreground))]">{t("tapWord")}</p></div></div>{selectedWord ? <div className="rounded-2xl bg-[hsl(var(--secondary))] p-4" data-testid="panel-word-support"><p className="font-display text-3xl">{selectedWord}</p><div className="mt-3 flex flex-wrap gap-2">{chunkWord(selectedWord).map((chunk, index) => <span key={`${chunk}-${index}`} className="rounded-lg bg-[hsl(var(--card))] px-2 py-1 font-mono-coco text-sm font-medium shadow-sm">{chunk}</span>)}</div><button type="button" onClick={() => speak(selectedWord)} data-testid="button-pronounce-selected" className="mt-4 flex items-center gap-2 text-sm font-bold text-[hsl(var(--primary))]"><Volume2 size={16} /> {t("listen")}</button></div> : <div className="rounded-2xl border border-dashed border-[hsl(var(--border))] p-5 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">{t("tapWord")}</div>}</div>
-      <div className="rounded-[24px] border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-5"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-[hsl(var(--card))]"><Headphones size={18} className="text-[hsl(var(--primary))]" /></div><div><h2 className="font-bold">{t("manual")}</h2><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">SpeechSynthesis stays in your browser.</p></div></div></div>
+      <div className="rounded-[24px] border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-5"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-[hsl(var(--card))]"><Headphones size={18} className="text-[hsl(var(--primary))]" /></div><div><h2 className="font-bold">Calm reading voice</h2><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Tap Listen for a gentle, steady reading pace.</p></div></div><button type="button" onClick={speakLesson} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[hsl(var(--card))] px-3 py-2 text-sm font-bold text-[hsl(var(--primary))]" data-testid="button-listen-lesson"> <Volume2 size={16} /> Listen to whole lesson</button></div>
+      <div className="rounded-[24px] border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-[hsl(var(--secondary))]"><Webcam size={18} className="text-[hsl(var(--primary))]" /></div><div><h2 className="font-bold">Read with camera</h2><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Only if you choose. Audio help always stays on.</p></div></div>{cameraPermission === "granted" && <p role="status" className="mt-3 text-xs font-bold text-[hsl(var(--primary))]">Camera ready for this reading.</p>}{cameraPermission === "denied" && <p role="status" className="mt-3 text-xs font-bold text-[hsl(var(--muted-foreground))]">That’s okay — keep reading with audio help.</p>}{cameraPermission !== "granted" && <button type="button" disabled={cameraBusy} onClick={askCamera} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[hsl(var(--primary))] px-3 py-2 text-sm font-bold text-[hsl(var(--primary-foreground))] disabled:opacity-60" data-testid="button-reader-camera">{cameraBusy ? "Waiting for your choice…" : "Turn on camera"} <Webcam size={16} /></button>}</div>
       {done && <div className="reveal rounded-[24px] bg-[hsl(var(--primary))] p-6 text-[hsl(var(--primary-foreground))] shadow-[4px_4px_0_hsl(var(--accent))]" data-testid="status-completion"><Trophy className="mb-5 text-[hsl(var(--accent))]" size={30} /><p className="font-mono-coco text-[10px] tracking-[.2em]">{t("completed")}</p><h2 className="mt-2 font-display text-4xl">{t("brave")}</h2><p className="mt-3 text-sm text-[hsl(var(--primary-foreground)/.8)]">{t("amazing")}. This page is yours now.</p><button type="button" onClick={() => setLocation(profile.mode === "child" ? "/child" : "/adult")} data-testid="button-return-home" className="mt-5 rounded-xl bg-[hsl(var(--accent))] px-4 py-2 text-sm font-bold text-[hsl(var(--foreground))]">Return home</button></div>}</aside></div>
   </div></AppShell>;
 }
 
 function PrivacyPage({ settings, onUpdate, language, setLanguage, profile, onReset }: { settings: Settings; onUpdate: (next: Partial<Settings>) => void; language: Language; setLanguage: (l: Language) => void; profile: Profile; onReset: () => void }) {
   const t = (key: string) => copy[language][key] || copy.en[key] || key;
-  const [permission, setPermission] = useState<"idle" | "granted" | "denied">("idle");
-  const [busy, setBusy] = useState(false);
-  const ask = async () => {
-    setBusy(true);
-    try {
-      if (!navigator.mediaDevices?.getUserMedia) throw new Error("not supported");
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      stream.getTracks().forEach((track) => track.stop());
-      setPermission("granted");
-    } catch { setPermission("denied"); }
-    setBusy(false);
-  };
-  return <AppShell profile={profile} language={language} setLanguage={setLanguage} onReset={onReset}><div className="mx-auto max-w-4xl px-5 py-10 sm:px-10 lg:px-14 lg:py-16"><PageIntro eyebrow="Trust / always local" title={t("privacy")} description="COCO’s most helpful setting is the one you choose with full information." /><div className="grid gap-5 md:grid-cols-2"><section className="paper-card rounded-[28px] p-7 sm:p-9"><div className="mb-7 grid h-14 w-14 place-items-center rounded-2xl bg-[hsl(var(--secondary))]"><Webcam size={27} className="text-[hsl(var(--primary))]" /></div><h2 className="font-display text-3xl">{t("gaze")}</h2><p className="mt-4 leading-relaxed text-[hsl(var(--muted-foreground))]">Gaze learning can help COCO notice reading patterns. It is optional, client-side, and never starts by itself. No video leaves this device.</p><div className="mt-6 flex items-start gap-3 rounded-2xl bg-[hsl(var(--secondary))] p-4 text-sm"><LockKeyhole size={18} className="mt-0.5 shrink-0 text-[hsl(var(--primary))]" /><span>{t("optional")} {t("manual")}</span></div>{permission === "granted" && <p role="status" className="mt-5 flex items-center gap-2 text-sm font-bold text-[hsl(var(--primary))]"><Check size={17} /> {t("cameraOn")}</p>}{permission === "denied" && <p role="status" className="mt-5 text-sm font-bold text-[hsl(var(--destructive))]">{t("cameraNo")}</p>}<button type="button" disabled={busy || permission === "granted"} onClick={ask} data-testid="button-ask-camera" className="coco-button mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-[hsl(var(--primary))] px-4 py-3 font-bold text-[hsl(var(--primary-foreground))] disabled:opacity-60">{busy ? "Waiting for your choice…" : t("askCamera")} <Webcam size={17} /></button><button type="button" onClick={() => { onUpdate({ gazeMode: false }); setPermission("denied"); }} data-testid="button-decline-gaze" className="mt-3 w-full rounded-2xl border border-[hsl(var(--border))] px-4 py-3 text-sm font-bold">{t("decline")}</button></section><section className="rounded-[28px] bg-[hsl(var(--primary))] p-7 text-[hsl(var(--primary-foreground))] sm:p-9"><div className="mb-7 grid h-14 w-14 place-items-center rounded-2xl bg-[hsl(var(--accent))] text-[hsl(var(--foreground))]"><Headphones size={27} /></div><h2 className="font-display text-3xl">Your audio-first promise</h2><p className="mt-4 leading-relaxed text-[hsl(var(--primary-foreground)/.78)]">You never lose support by saying no. Tap a word for sound steps, use pronunciation, and move through every page manually.</p><div className="mt-8 space-y-3 text-sm font-bold"><div className="flex items-center gap-3"><Check size={17} className="text-[hsl(var(--accent))]" /> Speech stays in your browser</div><div className="flex items-center gap-3"><Check size={17} className="text-[hsl(var(--accent))]" /> No account or cloud library</div><div className="flex items-center gap-3"><Check size={17} className="text-[hsl(var(--accent))]" /> You can change your choice anytime</div></div><Link href={profile.mode === "child" ? "/child" : "/adult"} className="mt-9 flex items-center justify-center gap-2 rounded-2xl bg-[hsl(var(--accent))] px-4 py-3 font-bold text-[hsl(var(--foreground))]" data-testid="link-return-reading">{t("back")} <ArrowRight size={17} /></Link></section></div></div></AppShell>;
+  return <AppShell profile={profile} language={language} setLanguage={setLanguage} onReset={onReset}><div className="mx-auto max-w-4xl px-5 py-10 sm:px-10 lg:px-14 lg:py-16"><PageIntro eyebrow="A choice you own" title={t("privacy")} description="Camera help is offered only while you are reading, so you can decide in the moment." /><div className="grid gap-5 md:grid-cols-2"><section className="paper-card rounded-[28px] p-7 sm:p-9"><div className="mb-7 grid h-14 w-14 place-items-center rounded-2xl bg-[hsl(var(--secondary))]"><LockKeyhole size={27} className="text-[hsl(var(--primary))]" /></div><h2 className="font-display text-3xl">Your reading stays yours</h2><p className="mt-4 leading-relaxed text-[hsl(var(--muted-foreground))]">COCO keeps your books and reading steps on this device. Nothing is shared, and camera help never begins on its own.</p><div className="mt-6 flex items-start gap-3 rounded-2xl bg-[hsl(var(--secondary))] p-4 text-sm"><Check size={18} className="mt-0.5 shrink-0 text-[hsl(var(--primary))]" /><span>When you open a book, you can choose camera help or continue with audio and word support.</span></div></section><section className="rounded-[28px] bg-[hsl(var(--primary))] p-7 text-[hsl(var(--primary-foreground))] sm:p-9"><div className="mb-7 grid h-14 w-14 place-items-center rounded-2xl bg-[hsl(var(--accent))] text-[hsl(var(--foreground))]"><Headphones size={27} /></div><h2 className="font-display text-3xl">A calm voice is always here</h2><p className="mt-4 leading-relaxed text-[hsl(var(--primary-foreground)/.78)]">You never lose support by saying no. Listen to a word, hear the whole lesson, and move through every page at your own pace.</p><div className="mt-8 space-y-3 text-sm font-bold"><div className="flex items-center gap-3"><Check size={17} className="text-[hsl(var(--accent))]" /> Gentle voice support</div><div className="flex items-center gap-3"><Check size={17} className="text-[hsl(var(--accent))]" /> Your own books</div><div className="flex items-center gap-3"><Check size={17} className="text-[hsl(var(--accent))]" /> Your choice, every time</div></div><Link href={profile.mode === "child" ? "/child" : "/adult"} className="mt-9 flex items-center justify-center gap-2 rounded-2xl bg-[hsl(var(--accent))] px-4 py-3 font-bold text-[hsl(var(--foreground))]" data-testid="link-return-reading">{t("back")} <ArrowRight size={17} /></Link></section></div></div></AppShell>;
 }
 
 function RoutedErrorBoundary({ children }: { children: ReactNode }) {
