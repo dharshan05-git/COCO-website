@@ -1,0 +1,110 @@
+. 📚 Upload Any E-Book
+Upload and read PDF, TXT, and EPUB files.
+Not limited to predefined words or lessons.
+Practice using real reading material.
+2. 👁️ Optional Eye/Gaze Tracking
+User is always asked for webcam permission first.
+If accepted, WebGazer.js tracks reading gaze.
+Detects:
+Long fixation on a word
+Re-fixation/repeated attention
+Possible reading struggle
+3. 🔊 Non-Camera Learning Mode
+
+If the user does not allow webcam access:
+
+No camera is used.
+The user can manually select a difficult word.
+The system provides visual decoding and audio support.
+Reading tasks and practice still work.
+4. 🎯 Exact Word Struggle Detection
+
+Your main innovation:
+
+The system identifies the exact word where reading flow breaks.
+
+Flow:
+
+Reading → Struggle → Word Identification → Support → Recovery
+
+5. 🧩 AGPA Decoding Algorithm
+
+AGPA — Adaptive Grapheme–Phoneme Alignment Algorithm
+
+It:
+
+Processes the difficult word
+Maps graphemes to pronunciation units
+Splits the word into smaller readable chunks
+Provides adaptive decoding support
+6. 🎨 Visual Phonological Scaffolding
+
+When a difficult word is identified:
+
+The word is split into chunks.
+Chunks are visually highlighted.
+Different parts can be emphasized separately.
+Support disappears or reduces when the reader continues.
+7. 🔉 Offline Audio Support
+Provides pronunciation/phonological support.
+No external AI or cloud API is required.
+Designed around local/offline processing.
+8. 🧒 Child Learning Mode
+
+An original adventure/explorer-style interface for children:
+
+Reading missions
+Tasks
+Progress tracking
+Rewards
+Motivational messages such as:
+“BRAVE READER!”
+“YOU DID AMAZING!”
+“MISSION COMPLETED!”
+9. 👨 Adult Learning Mode
+
+A separate, clean interface with:
+
+E-book reading
+Difficulty support
+Progress tracking
+Reading analytics
+Difficult-word history
+10. ⏱️ Time-to-Recovery Metric
+
+Your key measurable innovation:
+
+Time from detected reading struggle until the reader resumes fluent reading.
+
+This can help measure whether the scaffolding is actually useful.
+
+11. 📊 Reading Progress Analytics
+
+Track:
+
+Books completed
+Reading sessions
+Difficult words
+Number of struggle events
+Recovery time
+Frequently difficult words
+Overall reading progress
+12. 🔐 Privacy-First Design
+Webcam permission is optional.
+Gaze processing remains client-side.
+Raw webcam frames do not need to be sent to the backend.
+User data and progress can be stored separately from camera processing.
+13. ⚛️ React Virtual DOM-Based Reading
+Each word is managed through the React reading interface.
+Words can have unique IDs and reading states.
+When a difficult word is detected, React state updates the affected reading component for scaffolding.
+14. 💾 User Accounts & Data Persistence
+
+With the backend:
+
+Child/adult user profiles
+Secure login
+Reading history
+Uploaded book information
+Session history
+Progress persistence

@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "COCO Dyslexia Reading Companion"
+description = "A privacy-first multilingual reading companion for dyslexic readers, with child explorer missions, adult reading practice, local e-book uploads, offline audio support, and optional webcam gaze learning."
+version = "1.0.0"
+id = "artifacts/coco"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23686
+
+[services.development]
+run = "pnpm --filter @workspace/coco run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/coco", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/coco/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23686"
+BASE_PATH = "/"

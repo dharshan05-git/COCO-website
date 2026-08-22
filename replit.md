@@ -1,6 +1,6 @@
-# [Project name]
+# COCO Dyslexia Reading Companion
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+COCO is a privacy-first multilingual reading companion that helps children and adults practise with their own books.
 
 ## Run & Operate
 
@@ -30,7 +30,12 @@ _Populate as you build — non-obvious choices a reader couldn't infer from the 
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Two onboarding paths: Explorer journey for children and Focused reading for adults.
+- Local demo library plus browser-local TXT, PDF, and EPUB upload support.
+- Word-level reading practice with manual difficult-word selection, heuristic grapheme chunking, and browser SpeechSynthesis pronunciation.
+- Optional webcam gaze-learning permission flow; declining camera access keeps audio and manual support fully available.
+- English, हिन्दी, and தமிழ் interface copy.
+- Local reading sessions, progress, recovery metrics, rewards, settings, and difficult-word history stored in the browser.
 
 ## User preferences
 
